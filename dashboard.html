@@ -1,23 +1,227 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Dashboard</title>
-  <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<title>CivicFix Dashboard</title>
+<link rel="stylesheet" href="style.css">
+
+<style>
+body {
+  margin: 0;
+  font-family: 'Segoe UI', sans-serif;
+  background: #f4f6fb;
+}
+
+/* NAVBAR */
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  padding: 20px 40px;
+  background: white;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+
+.logo {
+  font-weight: bold;
+  font-size: 20px;
+}
+
+/* HEADER */
+.header {
+  padding: 30px 40px;
+}
+
+.header h2 {
+  margin: 0;
+}
+
+.header p {
+  color: gray;
+}
+
+/* STATS */
+.stats {
+  display: flex;
+  gap: 20px;
+  padding: 0 40px;
+}
+
+.stat-card {
+  flex: 1;
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  text-align: center;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+}
+
+.stat-card h3 {
+  margin: 10px 0;
+}
+
+.stat-card.total { color: black; }
+.stat-card.pending { color: orange; }
+.stat-card.progress { color: blue; }
+.stat-card.resolved { color: green; }
+.stat-card.critical { color: red; }
+
+/* FILTER */
+.filters {
+  margin: 30px 40px;
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+}
+
+/* COMPLAINT LIST */
+.complaints {
+  padding: 0 40px;
+}
+
+.card {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+}
+
+.tag {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  margin-right: 5px;
+}
+
+.critical { background: #ffe5e5; color: red; }
+.normal { background: #e6f0ff; color: blue; }
+
+.status {
+  margin-top: 10px;
+}
+
+/* BUTTON */
+select {
+  padding: 5px;
+  border-radius: 6px;
+}
+
+/* RESPONSIVE */
+@media(max-width: 800px){
+  .stats {
+    flex-direction: column;
+  }
+}
+</style>
 </head>
+
 <body>
 
-<div class="container">
+<!-- NAVBAR -->
+<div class="navbar">
+  <div class="logo">CivicFix Dashboard</div>
+  <button onclick="window.location.href='index.html'">Home</button>
+</div>
+
+<!-- HEADER -->
+<div class="header">
   <h2>Official Dashboard</h2>
+  <p>Manage and resolve civic complaints</p>
+</div>
 
-  <div id="stats"></div>
+<!-- STATS -->
+<div class="stats" id="stats"></div>
 
+<!-- FILTERS -->
+<div class="filters">
+  <b>Filters & Sort</b><br><br>
+  <select id="statusFilter" onchange="loadDashboard()">
+    <option value="All">All Status</option>
+    <option value="Pending">Pending</option>
+    <option value="In Progress">In Progress</option>
+    <option value="Resolved">Resolved</option>
+  </select>
+</div>
+
+<!-- COMPLAINT LIST -->
+<div class="complaints">
   <h3>Complaints</h3>
   <div id="complaints"></div>
 </div>
 
 <script src="script.js"></script>
+
 <script>
-  loadDashboard();
+function loadDashboard() {
+  const data = JSON.parse(localStorage.getItem("complaints")) || [];
+  const filter = document.getElementById("statusFilter").value;
+
+  let filtered = filter === "All"
+    ? data
+    : data.filter(c => c.status === filter);
+
+  // STATS
+  const total = data.length;
+  const pending = data.filter(c => c.status === "Pending").length;
+  const progress = data.filter(c => c.status === "In Progress").length;
+  const resolved = data.filter(c => c.status === "Resolved").length;
+  const critical = data.filter(c => c.priority === "Critical").length;
+
+  document.getElementById("stats").innerHTML = `
+    <div class="stat-card total">
+      <p>Total</p><h3>${total}</h3>
+    </div>
+    <div class="stat-card pending">
+      <p>Pending</p><h3>${pending}</h3>
+    </div>
+    <div class="stat-card progress">
+      <p>In Progress</p><h3>${progress}</h3>
+    </div>
+    <div class="stat-card resolved">
+      <p>Resolved</p><h3>${resolved}</h3>
+    </div>
+    <div class="stat-card critical">
+      <p>Critical</p><h3>${critical}</h3>
+    </div>
+  `;
+
+  // COMPLAINTS
+  let html = "";
+
+  filtered.forEach((c, index) => {
+    html += `
+      <div class="card">
+        <h4>${c.title}</h4>
+        <p>${c.description}</p>
+
+        <p><b>Location:</b> ${c.location}</p>
+        <p><b>Category:</b> ${c.category}</p>
+
+        <span class="tag ${c.priority === "Critical" ? "critical" : "normal"}">
+          ${c.priority}
+        </span>
+
+        <p><b>AI Confidence:</b> ${c.aiConfidence}%</p>
+        <p><b>Est. Time:</b> ${c.estimatedTime}</p>
+
+        <div class="status">
+          <b>Status:</b>
+          <select onchange="updateStatus(${index}, this.value)">
+            <option ${c.status==="Pending"?"selected":""}>Pending</option>
+            <option ${c.status==="In Progress"?"selected":""}>In Progress</option>
+            <option ${c.status==="Resolved"?"selected":""}>Resolved</option>
+          </select>
+        </div>
+      </div>
+    `;
+  });
+
+  document.getElementById("complaints").innerHTML = html;
+}
+
+// LOAD ON START
+loadDashboard();
 </script>
+
 </body>
 </html>
